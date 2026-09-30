@@ -1,0 +1,43 @@
+# ---------- Maven ----------
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---------- IDE: IntelliJ IDEA ----------
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# ---------- IDE: Eclipse / STS ----------
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# ---------- IDE: VS Code ----------
+.vscode/
+
+# ---------- Secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ---------- Прочее ----------
+*.class
+*.jar
+*.war
+*.swp
+*~

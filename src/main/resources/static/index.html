@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Трекер задач</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+    <h1>📋 Трекер задач</h1>
+    <span id="instance" title="Экземпляр приложения, обработавший запрос"></span>
+</header>
+
+<nav class="tabs">
+    <button class="tab active" data-tab="tasks">Задачи</button>
+    <button class="tab" data-tab="projects">Проекты</button>
+</nav>
+
+<main>
+    <section id="tab-tasks" class="tab-content active">
+        <form id="task-form" class="card">
+            <h2 id="task-form-title">Новая задача</h2>
+            <input type="hidden" id="task-id">
+            <div class="row">
+                <label>Заголовок*
+                    <input type="text" id="task-title" required maxlength="300">
+                </label>
+                <label>Проект
+                    <select id="task-project">
+                        <option value="">— без проекта —</option>
+                    </select>
+                </label>
+            </div>
+            <label>Описание
+                <textarea id="task-description" rows="2" maxlength="5000"></textarea>
+            </label>
+            <div class="row">
+                <label>Статус
+                    <select id="task-status">
+                        <option value="NEW">Новая</option>
+                        <option value="IN_PROGRESS">В работе</option>
+                        <option value="DONE">Выполнена</option>
+                    </select>
+                </label>
+                <label>Приоритет
+                    <select id="task-priority">
+                        <option value="LOW">Низкий</option>
+                        <option value="MEDIUM" selected>Средний</option>
+                        <option value="HIGH">Высокий</option>
+                    </select>
+                </label>
+                <label>Срок
+                    <input type="date" id="task-due-date">
+                </label>
+            </div>
+            <div class="actions">
+                <button type="submit" class="primary">Сохранить</button>
+                <button type="button" id="task-cancel" class="ghost hidden">Отмена</button>
+            </div>
+        </form>
+
+        <div class="filters">
+            <label>Фильтр по статусу:
+                <select id="filter-status">
+                    <option value="">Все</option>
+                    <option value="NEW">Новая</option>
+                    <option value="IN_PROGRESS">В работе</option>
+                    <option value="DONE">Выполнена</option>
+                </select>
+            </label>
+        </div>
+
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th><th>Заголовок</th><th>Проект</th><th>Статус</th>
+                <th>Приоритет</th><th>Срок</th><th></th>
+            </tr>
+            </thead>
+            <tbody id="tasks-body"></tbody>
+        </table>
+    </section>
+
+    <section id="tab-projects" class="tab-content">
+        <form id="project-form" class="card">
+            <h2 id="project-form-title">Новый проект</h2>
+            <input type="hidden" id="project-id">
+            <div class="row">
+                <label>Название*
+                    <input type="text" id="project-name" required maxlength="200">
+                </label>
+                <label>Описание
+                    <input type="text" id="project-description" maxlength="2000">
+                </label>
+            </div>
+            <div class="actions">
+                <button type="submit" class="primary">Сохранить</button>
+                <button type="button" id="project-cancel" class="ghost hidden">Отмена</button>
+            </div>
+        </form>
+
+        <table>
+            <thead>
+            <tr><th>ID</th><th>Название</th><th>Описание</th><th></th></tr>
+            </thead>
+            <tbody id="projects-body"></tbody>
+        </table>
+    </section>
+</main>
+
+<div id="toast" class="hidden"></div>
+<script src="app.js"></script>
+</body>
+</html>
