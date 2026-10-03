@@ -1,12 +1,12 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:16.15-alpine
     environment:
-      POSTGRES_DB: ${DB_NAME:-tasktracker}
-      POSTGRES_USER: ${DB_USER:-tasktracker}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-tasktracker}
+      POSTGRES_DB: ${DB_NAME:?DB_NAME is required}
+      POSTGRES_USER: ${DB_USER:?DB_USER is required}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     ports:
-      - "5432:5432"
+      - "${DB_HOST_PORT:-5432}:5432"
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
@@ -15,19 +15,58 @@ services:
       timeout: 3s
       retries: 10
 
-  app:
-    build: .
+  migrate:
+    build:
+      context: .
+      dockerfile: migrate/Dockerfile
+    restart: "no"
     environment:
-      SERVER_PORT: 8080
-      DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-tasktracker}
-      DB_USER: ${DB_USER:-tasktracker}
-      DB_PASSWORD: ${DB_PASSWORD:-tasktracker}
-      INSTANCE_ID: ${INSTANCE_ID:-compose-app}
-    ports:
-      - "8080:8080"
+      FLYWAY_URL: jdbc:postgresql://${DB_HOST:?DB_HOST is required}:${DB_PORT:?DB_PORT is required}/${DB_NAME:?DB_NAME is required}
+      FLYWAY_USER: ${DB_USER:?DB_USER is required}
+      FLYWAY_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      SEED_DEMO: ${SEED_DEMO:-}
     depends_on:
       db:
         condition: service_healthy
+
+  backend:
+    build: .
+    environment:
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      DB_URL: jdbc:postgresql://${DB_HOST:?DB_HOST is required}:${DB_PORT:?DB_PORT is required}/${DB_NAME:?DB_NAME is required}
+      DB_USER: ${DB_USER:?DB_USER is required}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      INSTANCE_ID: ${INSTANCE_ID:-compose-app}
+    ports:
+      - "${BACKEND_PORT:-8081}:${SERVER_PORT:-8080}"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:$${SERVER_PORT}/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build: ./frontend
+    environment:
+      BACKEND_HOST: backend
+      BACKEND_PORT: ${SERVER_PORT:-8080}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
 volumes:
   db-data:
