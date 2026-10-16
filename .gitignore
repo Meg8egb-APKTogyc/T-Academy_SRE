@@ -41,3 +41,10 @@ Desktop.ini
 *.war
 *.swp
 *~
+kubectl
+minikube-linux-amd64
+9428
+*.tar.gz
+target/
+.idea/
+.env

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: task-tracker
+data:
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_NAME: tasktracker
+  SERVER_PORT: "8080"
+  INSTANCE_ID: k8s
+  SEED_DEMO: "1"

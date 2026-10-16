@@ -24,3 +24,11 @@ management:
 
 app:
   instance-id: ${INSTANCE_ID:local}
+
+logging:
+  structured:
+    format:
+      console: logstash
+    json:
+      add:
+        service.name: task-tracker-backend
