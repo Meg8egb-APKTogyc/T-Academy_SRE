@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluent-bit-config
-  namespace: task-tracker
+  namespace: monitoring
 data:
   fluent-bit.conf: |
     [SERVICE]
@@ -13,11 +13,11 @@ data:
 
     [INPUT]
         Name              tail
-        Path              /var/log/containers/*_task-tracker_backend-*.log
+        Path              /var/log/containers/*.log
         multiline.parser  docker, cri
         Tag               kube.*
         Refresh_Interval  5
-        Mem_Buf_Limit     16MB
+        Mem_Buf_Limit     32MB
         Skip_Long_Lines   On
 
     [FILTER]
@@ -32,10 +32,21 @@ data:
         K8S-Logging.Parser  On
         K8S-Logging.Exclude Off
 
+    [FILTER]
+        Name    modify
+        Match   kube.*
+        Rename  log message
+
+    [FILTER]
+        Name    grep
+        Match   kube.*
+        Exclude kubernetes.container_name fluent-bit
+        Exclude kubernetes.container_name victoria-logs
+
     [OUTPUT]
         Name              http
         Match             kube.*
-        Host              victoria-logs
+        Host              victoria-logs.monitoring.svc.cluster.local
         Port              9428
         URI               /insert/jsonline?_stream_fields=stream,kubernetes.pod_name,kubernetes.container_name&_msg_field=message&_time_field=%40timestamp
         Format            json_lines
