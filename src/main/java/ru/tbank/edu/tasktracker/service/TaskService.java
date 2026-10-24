@@ -6,6 +6,7 @@ import ru.tbank.edu.tasktracker.exception.NotFoundException;
 import ru.tbank.edu.tasktracker.model.Project;
 import ru.tbank.edu.tasktracker.model.Task;
 import ru.tbank.edu.tasktracker.model.TaskStatus;
+import ru.tbank.edu.tasktracker.metrics.BusinessMetrics;
 import ru.tbank.edu.tasktracker.repository.ProjectRepository;
 import ru.tbank.edu.tasktracker.repository.TaskRepository;
 import org.springframework.stereotype.Service;
@@ -19,10 +20,12 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
+    private final BusinessMetrics metrics;
 
-    public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository) {
+    public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository, BusinessMetrics metrics) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
+        this.metrics = metrics;
     }
 
     public List<TaskResponse> findAll(TaskStatus status, Long projectId) {
@@ -34,6 +37,9 @@ public class TaskService {
         } else {
             tasks = taskRepository.findAll();
         }
+
+        metrics.setTasksInProgress(taskRepository.countByStatus(TaskStatus.IN_PROGRESS));
+
         return tasks.stream().map(TaskResponse::from).toList();
     }
 
@@ -45,20 +51,37 @@ public class TaskService {
     public TaskResponse create(TaskRequest request) {
         Task task = new Task();
         applyRequest(task, request);
-        return TaskResponse.from(taskRepository.save(task));
+
+        Task saved = taskRepository.save(task);
+
+        metrics.incrementTasksCreated();
+        metrics.setTasksInProgress(taskRepository.countByStatus(TaskStatus.IN_PROGRESS));
+
+        return TaskResponse.from(saved);
     }
 
     @Transactional
     public TaskResponse update(Long id, TaskRequest request) {
         Task task = getEntity(id);
+        TaskStatus oldStatus = task.getStatus();
+
         applyRequest(task, request);
-        return TaskResponse.from(taskRepository.save(task));
+        Task saved = taskRepository.save(task);
+
+        if (oldStatus != TaskStatus.DONE && saved.getStatus() == TaskStatus.DONE) {
+            metrics.incrementTasksCompleted();
+        }
+        metrics.setTasksInProgress(taskRepository.countByStatus(TaskStatus.IN_PROGRESS));
+
+        return TaskResponse.from(saved);
     }
 
     @Transactional
     public void delete(Long id) {
         Task task = getEntity(id);
         taskRepository.delete(task);
+
+        metrics.setTasksInProgress(taskRepository.countByStatus(TaskStatus.IN_PROGRESS));
     }
 
     private void applyRequest(Task task, TaskRequest request) {

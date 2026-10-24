@@ -24,6 +24,10 @@ spec:
     metadata:
       labels:
         app: postgres
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9187"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: postgres
@@ -48,6 +52,21 @@ spec:
             limits:
               memory: "512Mi"
               cpu: "1000m"
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:v0.15.0
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://tasktracker:tasktracker@localhost:5432/tasktracker?sslmode=disable"
+          ports:
+            - containerPort: 9187
+              name: metrics
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
       volumes:
         - name: postgres-storage
           persistentVolumeClaim:

@@ -12,10 +12,14 @@ spec:
     metadata:
       labels:
         app: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
     spec:
       containers:
         - name: backend
-          image: task-tracker-backend:1.0.1
+          image: task-tracker-backend:1.0.3
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080

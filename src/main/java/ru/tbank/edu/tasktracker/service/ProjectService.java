@@ -5,6 +5,7 @@ import ru.tbank.edu.tasktracker.dto.ProjectResponse;
 import ru.tbank.edu.tasktracker.exception.NotFoundException;
 import ru.tbank.edu.tasktracker.model.Project;
 import ru.tbank.edu.tasktracker.repository.ProjectRepository;
+import ru.tbank.edu.tasktracker.metrics.BusinessMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +16,11 @@ import java.util.List;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final BusinessMetrics metrics;
 
-    public ProjectService(ProjectRepository projectRepository) {
+    public ProjectService(ProjectRepository projectRepository, BusinessMetrics metrics) {
         this.projectRepository = projectRepository;
+        this.metrics = metrics;
     }
 
     public List<ProjectResponse> findAll() {
@@ -33,6 +36,7 @@ public class ProjectService {
     @Transactional
     public ProjectResponse create(ProjectRequest request) {
         Project project = new Project(request.name(), request.description());
+        metrics.incrementProjectsCreated();
         return ProjectResponse.from(projectRepository.save(project));
     }
 
