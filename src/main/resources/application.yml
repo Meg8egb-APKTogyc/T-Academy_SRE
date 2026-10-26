@@ -24,6 +24,10 @@ management:
   endpoint:
     prometheus:
       access: read_only
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
   prometheus:
     metrics:
       export:

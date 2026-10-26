@@ -1,0 +1,17 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMProbe
+metadata:
+  name: app-probe
+  namespace: monitoring
+spec:
+  jobName: "app-probe"
+  module: http_2xx
+  vmProberSpec:
+    url: blackbox-exporter.monitoring.svc:9115
+  targets:
+    staticConfig:
+      targets:
+        - "backend.task-tracker.svc:8080/actuator/health"
+        - "frontend.task-tracker.svc:80/"
+  interval: 15s
+  scrapeTimeout: 10s
