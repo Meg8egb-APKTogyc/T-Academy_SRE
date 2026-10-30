@@ -21,25 +21,10 @@ config:
           target_label: __address__
         - action: labelmap
           regex: __meta_kubernetes_pod_label_(.+)
+          replacement: pod_label_$1
         - source_labels: [__meta_kubernetes_namespace]
           action: replace
           target_label: kubernetes_namespace
         - source_labels: [__meta_kubernetes_pod_name]
           action: replace
           target_label: kubernetes_pod_name
-
-    - job_name: 'blackbox'
-      metrics_path: /probe
-      params:
-        module: [http_2xx]
-      static_configs:
-        - targets:
-            - http://backend.task-tracker.svc:8080/actuator/health
-            - http://frontend.task-tracker.svc:80/
-      relabel_configs:
-        - source_labels: [__address__]
-          target_label: __param_target
-        - source_labels: [__param_target]
-          target_label: instance
-        - target_label: __address__
-          replacement: blackbox-exporter.monitoring.svc:9115

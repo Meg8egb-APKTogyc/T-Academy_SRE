@@ -38,7 +38,7 @@ public class TaskService {
             tasks = taskRepository.findAll();
         }
 
-        metrics.setTasksInProgress(taskRepository.countByStatus(TaskStatus.IN_PROGRESS));
+        refreshGauges();
 
         return tasks.stream().map(TaskResponse::from).toList();
     }
@@ -55,7 +55,7 @@ public class TaskService {
         Task saved = taskRepository.save(task);
 
         metrics.incrementTasksCreated();
-        metrics.setTasksInProgress(taskRepository.countByStatus(TaskStatus.IN_PROGRESS));
+        refreshGauges();
 
         return TaskResponse.from(saved);
     }
@@ -71,7 +71,7 @@ public class TaskService {
         if (oldStatus != TaskStatus.DONE && saved.getStatus() == TaskStatus.DONE) {
             metrics.incrementTasksCompleted();
         }
-        metrics.setTasksInProgress(taskRepository.countByStatus(TaskStatus.IN_PROGRESS));
+        refreshGauges();
 
         return TaskResponse.from(saved);
     }
@@ -81,7 +81,14 @@ public class TaskService {
         Task task = getEntity(id);
         taskRepository.delete(task);
 
+        refreshGauges();
+    }
+
+    private void refreshGauges() {
         metrics.setTasksInProgress(taskRepository.countByStatus(TaskStatus.IN_PROGRESS));
+        metrics.updateTasksPerProject(taskRepository.countTasksGroupByProject());
+        metrics.updateTasksByPriority(taskRepository.countTasksGroupByPriority());
+        metrics.updateTasksByStatus(taskRepository.countTasksGroupByStatus());
     }
 
     private void applyRequest(Task task, TaskRequest request) {

@@ -55,8 +55,18 @@ spec:
         - name: postgres-exporter
           image: prometheuscommunity/postgres-exporter:v0.15.0
           env:
-            - name: DATA_SOURCE_NAME
-              value: "postgresql://tasktracker:tasktracker@localhost:5432/tasktracker?sslmode=disable"
+            - name: DATA_SOURCE_URI
+              value: "localhost:5432/tasktracker?sslmode=disable"
+            - name: DATA_SOURCE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-exporter-secret
+                  key: MONITOR_USER
+            - name: DATA_SOURCE_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-exporter-secret
+                  key: MONITOR_PASSWORD
           ports:
             - containerPort: 9187
               name: metrics

@@ -5,6 +5,7 @@ import ru.tbank.edu.tasktracker.dto.ProjectResponse;
 import ru.tbank.edu.tasktracker.exception.NotFoundException;
 import ru.tbank.edu.tasktracker.model.Project;
 import ru.tbank.edu.tasktracker.repository.ProjectRepository;
+import ru.tbank.edu.tasktracker.repository.TaskRepository;
 import ru.tbank.edu.tasktracker.metrics.BusinessMetrics;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,10 +17,12 @@ import java.util.List;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final TaskRepository taskRepository;
     private final BusinessMetrics metrics;
 
-    public ProjectService(ProjectRepository projectRepository, BusinessMetrics metrics) {
+    public ProjectService(ProjectRepository projectRepository, TaskRepository taskRepository, BusinessMetrics metrics) {
         this.projectRepository = projectRepository;
+        this.taskRepository = taskRepository;
         this.metrics = metrics;
     }
 
@@ -52,6 +55,7 @@ public class ProjectService {
     public void delete(Long id) {
         Project project = getEntity(id);
         projectRepository.delete(project);
+        metrics.updateTasksPerProject(taskRepository.countTasksGroupByProject());
     }
 
     private Project getEntity(Long id) {
