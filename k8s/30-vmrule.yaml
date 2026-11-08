@@ -1,0 +1,89 @@
+apiVersion: operator.victoriametrics.com/v1beta1
+kind: VMRule
+metadata:
+  name: task-tracker-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: service
+      interval: 30s
+      rules:
+        - alert: ServiceProbeDown
+          expr: probe_success{job="blackbox"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            service: task-tracker
+            namespace: monitoring
+          annotations:
+            summary: "Сервис недоступен для пробера"
+            description: >-
+              Blackbox-пробер не может получить успешный ответ от {{ $labels.instance }}
+              в течение 2 минут. SLI «инфраструктурная доступность» (probe_success) упал до 0.
+
+        - alert: HighHttp5xxRate
+          expr: |
+            sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+              /
+            sum(rate(http_server_requests_seconds_count[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+            service: task-tracker
+            namespace: monitoring
+          annotations:
+            summary: "Доля HTTP 5xx превышает 5%"
+            description: >-
+              Более 5% запросов к API завершаются ошибками 5xx в течение 5 минут
+              (доля успеха {{ $value | humanizePercentage }}). Error budget при SLO 99.5%
+              сжигается быстрее предусмотренного.
+
+        - alert: HighHttpLatencyP95
+          expr: |
+            histogram_quantile(0.95,
+              sum by (le) (rate(http_server_requests_seconds_bucket[5m]))
+            ) > 0.5
+          for: 10m
+          labels:
+            severity: warning
+            service: task-tracker
+            namespace: monitoring
+          annotations:
+            summary: "p95 латентности HTTP превышает 500мс"
+            description: >-
+              p95 времени ответа API составляет {{ $value | humanizeDuration }}
+              более 10 минут. Это нарушает SLO «95% запросов быстрее 500мс».
+
+    - name: jvm
+      interval: 30s
+      rules:
+        - alert: JvmHeapHighUsage
+          expr: |
+            sum(jvm_memory_used_bytes{area="heap"})
+              /
+            sum(jvm_memory_max_bytes{area="heap"}) > 0.85
+          for: 10m
+          labels:
+            severity: warning
+            service: task-tracker
+            namespace: monitoring
+          annotations:
+            summary: "JVM heap занят более чем на 85%"
+            description: >-
+              Использование heap JVM (метрика актуатора Spring Boot / Micrometer)
+              составляет {{ $value | humanizePercentage }} дольше 10 минут.
+              Ранний сигнал перед OOM Kill контейнера.
+
+        - alert: JvmGcPauseHigh
+          expr: sum(rate(jvm_gc_pause_seconds_sum[5m])) > 0.1
+          for: 10m
+          labels:
+            severity: warning
+            service: task-tracker
+            namespace: monitoring
+          annotations:
+            summary: "Высокие паузы GC в JVM"
+            description: >-
+              JVM тратит более 100мс в секунду на сборку мусора
+              ({{ $value | humanizeDuration }}/s) дольше 10 минут —
+              латентность запросов будет деградировать.

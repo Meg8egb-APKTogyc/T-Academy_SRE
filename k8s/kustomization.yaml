@@ -14,3 +14,6 @@ resources:
   - 13-fluent-bit-rbac.yaml
   - 20-blackbox-exporter.yaml
   - 21-vmprobe.yaml
+  - 30-vmrule.yaml
+  - 31-vmalert.yaml
+  - 32-vmalertmanager.yaml
