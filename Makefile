@@ -1,8 +1,10 @@
-.PHONY: deploy apply helm-repo telegram-secret
+.PHONY: deploy apply helm-repo telegram-secret deploy-grafana
 
 helm-repo:
 	helm repo add vm https://victoriametrics.github.io/helm-charts/ --force-update
 	helm repo update vm
+	helm repo add grafana https://grafana.github.io/helm-charts --force-update
+	helm repo update grafana
 
 apply:
 	kubectl apply -k k8s/
@@ -20,3 +22,7 @@ telegram-secret:
 		--from-literal=bot-token='$(TELEGRAM_BOT_TOKEN)' \
 		--from-literal=chat-id='$(TELEGRAM_CHAT_ID)' \
 		--dry-run=client -o yaml | kubectl apply -f -
+
+deploy-grafana: helm-repo
+	helm upgrade --install grafana grafana/grafana --namespace monitoring --create-namespace -f grafana-values.yaml
+	kubectl apply -k k8s/

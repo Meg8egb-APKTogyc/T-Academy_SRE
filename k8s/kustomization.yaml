@@ -17,3 +17,4 @@ resources:
   - 30-vmrule.yaml
   - 31-vmalert.yaml
   - 32-vmalertmanager.yaml
+  - 40-grafana-dashboards.yaml

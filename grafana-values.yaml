@@ -1,0 +1,42 @@
+adminUser: admin
+adminPassword: admin
+
+service:
+  type: ClusterIP
+  port: 80
+
+persistence:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+grafana.ini:
+  analytics:
+    check_for_updates: false
+  news:
+    news_feed_enabled: false
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: VictoriaMetrics
+        uid: victoriametrics
+        type: prometheus
+        access: proxy
+        url: http://vm-single-victoria-metrics-single-server.monitoring.svc:8428
+        isDefault: true
+        jsonData:
+          timeInterval: 10s
+
+sidecar:
+  dashboards:
+    enabled: true
+    label: grafana_dashboard
+    searchNamespace: monitoring
