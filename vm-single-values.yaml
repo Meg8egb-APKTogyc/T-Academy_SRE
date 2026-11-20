@@ -1,6 +1,6 @@
 server:
   replicaCount: 1
-  retentionPeriod: 14
+  retentionPeriod: "30d"
   persistentVolume:
     enabled: true
     accessModes:

@@ -10,7 +10,7 @@ spec:
       rules:
         - alert: ServiceProbeDown
           expr: probe_success{job="blackbox"} == 0
-          for: 2m
+          for: 5m
           labels:
             severity: critical
             service: task-tracker
@@ -18,41 +18,94 @@ spec:
           annotations:
             summary: "Сервис недоступен для пробера"
             description: >-
-              Blackbox-пробер не может получить успешный ответ от {{ $labels.instance }}
-              в течение 2 минут. SLI «инфраструктурная доступность» (probe_success) упал до 0.
+              Blackbox-пробер не получает успешный ответ от {{ $labels.instance }}
+              в течение 5 минут (~20 проб подряд).
 
-        - alert: HighHttp5xxRate
+        - alert: Http5xxFastBurn
           expr: |
-            sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
-              /
-            sum(rate(http_server_requests_seconds_count[5m])) > 0.05
-          for: 5m
+            (
+              sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+                /
+              sum(rate(http_server_requests_seconds_count[5m]))
+            ) > 14.4 * 0.005
+            and
+            (
+              sum(rate(http_server_requests_seconds_count{status=~"5.."}[1h]))
+                /
+              sum(rate(http_server_requests_seconds_count[1h]))
+            ) > 14.4 * 0.005
+          for: 2m
           labels:
             severity: critical
             service: task-tracker
             namespace: monitoring
           annotations:
-            summary: "Доля HTTP 5xx превышает 5%"
+            summary: "Быстрое сжигание error budget по 5xx"
             description: >-
-              Более 5% запросов к API завершаются ошибками 5xx в течение 5 минут
-              (доля успеха {{ $value | humanizePercentage }}). Error budget при SLO 99.5%
-              сжигается быстрее предусмотренного.
+              Доля 5xx ({{ $value | humanizePercentage }}) превышает 14.4× бюджета
+              SLO 99.5% одновременно на окнах 5м и 1ч.
+
+        - alert: Http5xxSlowBurn
+          expr: |
+            (
+              sum(rate(http_server_requests_seconds_count{status=~"5.."}[30m]))
+                /
+              sum(rate(http_server_requests_seconds_count[30m]))
+            ) > 6 * 0.005
+            and
+            (
+              sum(rate(http_server_requests_seconds_count{status=~"5.."}[6h]))
+                /
+              sum(rate(http_server_requests_seconds_count[6h]))
+            ) > 6 * 0.005
+          for: 15m
+          labels:
+            severity: warning
+            service: task-tracker
+            namespace: monitoring
+          annotations:
+            summary: "Устойчивое сжигание error budget по 5xx"
+            description: >-
+              Доля 5xx ({{ $value | humanizePercentage }}) держится выше 6× бюджета
+              SLO 99.5% (порог 3%) на окнах 30м и 6ч.
 
         - alert: HighHttpLatencyP95
           expr: |
             histogram_quantile(0.95,
               sum by (le) (rate(http_server_requests_seconds_bucket[5m]))
             ) > 0.5
-          for: 10m
+          for: 15m
           labels:
-            severity: warning
+            severity: critical
             service: task-tracker
             namespace: monitoring
           annotations:
             summary: "p95 латентности HTTP превышает 500мс"
             description: >-
               p95 времени ответа API составляет {{ $value | humanizeDuration }}
-              более 10 минут. Это нарушает SLO «95% запросов быстрее 500мс».
+              в течение 15 минут. 
+
+        - alert: HttpLatencySlowBurn
+          expr: |
+            (
+              1 - histogram_share(0.5,
+                    sum(rate(http_server_requests_seconds_bucket[30m])) by (le))
+            ) > 6 * 0.05
+            and
+            (
+              1 - histogram_share(0.5,
+                    sum(rate(http_server_requests_seconds_bucket[6h])) by (le))
+            ) > 6 * 0.05
+          for: 15m
+          labels:
+            severity: warning
+            service: task-tracker
+            namespace: monitoring
+          annotations:
+            summary: "Устойчивое сжигание error budget по латентности"
+            description: >-
+              Доля запросов медленнее 500мс ({{ $value | humanizePercentage }})
+              превышает 6× бюджета SLO 95% (порог 30%) на окнах 30м и 6ч.
 
     - name: jvm
       interval: 30s
@@ -62,7 +115,7 @@ spec:
             sum(jvm_memory_used_bytes{area="heap"})
               /
             sum(jvm_memory_max_bytes{area="heap"}) > 0.85
-          for: 10m
+          for: 15m
           labels:
             severity: warning
             service: task-tracker
@@ -71,12 +124,11 @@ spec:
             summary: "JVM heap занят более чем на 85%"
             description: >-
               Использование heap JVM (метрика актуатора Spring Boot / Micrometer)
-              составляет {{ $value | humanizePercentage }} дольше 10 минут.
-              Ранний сигнал перед OOM Kill контейнера.
+              составляет {{ $value | humanizePercentage }} дольше 15 минут.
 
         - alert: JvmGcPauseHigh
           expr: sum(rate(jvm_gc_pause_seconds_sum[5m])) > 0.1
-          for: 10m
+          for: 15m
           labels:
             severity: warning
             service: task-tracker
@@ -85,5 +137,5 @@ spec:
             summary: "Высокие паузы GC в JVM"
             description: >-
               JVM тратит более 100мс в секунду на сборку мусора
-              ({{ $value | humanizeDuration }}/s) дольше 10 минут —
-              латентность запросов будет деградировать.
+              ({{ $value | humanizeDuration }}/s) дольше 15 минут — латентность
+              запросов будет деградировать.
