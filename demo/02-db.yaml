@@ -1,0 +1,23 @@
+# Демо переиспользует PostgreSQL из namespace task-tracker.
+# Состояние приложения находится вне подов, поэтому реплики взаимозаменяемы.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+  namespace: deploy-demo
+type: Opaque
+stringData:
+  POSTGRES_DB: tasktracker
+  POSTGRES_USER: tasktracker
+  POSTGRES_PASSWORD: tasktracker
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-config
+  namespace: deploy-demo
+data:
+  DB_HOST: db.task-tracker.svc.cluster.local
+  DB_PORT: "5432"
+  DB_NAME: tasktracker
+  SERVER_PORT: "8080"

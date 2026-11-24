@@ -1,0 +1,28 @@
+# A/B — по заголовку x-user-group: beta направляем аудиторию на v2, остальных на v1.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: task-tracker
+  namespace: deploy-demo
+spec:
+  parentRefs:
+    - name: eg
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+          headers:
+            - name: x-user-group
+              type: Exact
+              value: beta
+      backendRefs:
+        - name: task-tracker-v2
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - name: task-tracker-v1
+          port: 80

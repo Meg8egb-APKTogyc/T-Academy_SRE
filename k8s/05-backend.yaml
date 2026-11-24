@@ -4,7 +4,12 @@ metadata:
   name: backend
   namespace: task-tracker
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: backend
@@ -12,18 +17,22 @@ spec:
     metadata:
       labels:
         app: backend
+        version: "1.1.0"
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
         prometheus.io/path: "/actuator/prometheus"
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
         - name: backend
-          image: task-tracker-backend:1.0.5
+          image: task-tracker-backend:1.1.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           env:
+            - name: APP_VERSION
+              value: "1.1.0"
             - name: DB_URL
               value: jdbc:postgresql://$(DB_HOST):$(DB_PORT)/$(DB_NAME)
             - name: DB_USER
@@ -46,12 +55,24 @@ spec:
             limits:
               memory: "768Mi"
               cpu: "1000m"
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 2
+            failureThreshold: 180
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
             periodSeconds: 10
+            failureThreshold: 3
 ---
 apiVersion: v1
 kind: Service

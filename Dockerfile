@@ -12,6 +12,10 @@ RUN mvn -B package -DskipTests
 FROM eclipse-temurin:21.0.12.1_1-jre-alpine
 WORKDIR /app
 
+ARG APP_VERSION=1.1.0
+ENV APP_VERSION=${APP_VERSION}
+LABEL org.opencontainers.image.version="${APP_VERSION}"
+
 RUN adduser -S -H -u 1001 appuser
 COPY --from=build /app/target/task-tracker-1.0.0.jar app.jar
 USER appuser

@@ -22,9 +22,19 @@ management:
       exposure:
         include: health,info,prometheus
   endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
     prometheus:
       access: read_only
   metrics:
+    tags:
+      version: ${APP_VERSION:1.1.0}
     distribution:
       percentiles-histogram:
         http.server.requests: true
@@ -35,6 +45,7 @@ management:
 
 app:
   instance-id: ${INSTANCE_ID:local}
+  version: ${APP_VERSION:1.1.0}
 
 logging:
   structured:
